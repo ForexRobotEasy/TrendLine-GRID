@@ -1,0 +1,124 @@
+
+//+------------------------------------------------------------------+
+//|                                               TrendLine GRID EA  |
+//|                                        Developed by Forex Robot Easy Team |
+//|                                              Developer's Site - forexroboteasy.com |
+//+------------------------------------------------------------------+
+
+// Include necessary libraries and indicators
+#include <Trade\Trade.mqh>
+#include <Indicators\TrendLinePRO.mqh>
+
+// Define input parameters
+input int MaxOrders = 5; // Maximum number of orders to be placed
+input double LotSize = 0.01; // Lot size for each order
+input double GridDistance = 10; // Distance between grid levels
+input int DrawdownReductionOrders = 3; // Number of orders before activating Drawdown Reduction function
+
+// Define global variables
+CTrade trade; // Trade class instance
+CTrendLinePRO trendLine; // Trend Line PRO indicator class instance
+int ordersPlaced = 0; // Counter for the number of orders placed
+int unprofitableOrders = 0; // Counter for the number of unprofitable orders
+
+//+------------------------------------------------------------------+
+//|                                                   OnInit function |
+//|                                Initializes the EA when attached to the chart |
+//+------------------------------------------------------------------+
+void OnInit()
+{
+   trade.SetExpertMagicNumber(123456); // Set expert magic number
+   trade.SetExpertTicketPrefix('TLG'); // Set expert ticket prefix
+}
+
+//+------------------------------------------------------------------+
+//|                                                   OnTick function |
+//|                                      Executes on every tick received |
+//+------------------------------------------------------------------+
+void OnTick()
+{
+   // Check if there are existing orders
+   if (trade.PositionsTotal() > 0)
+   {
+      // Check if Drawdown Reduction should be activated
+      if (ordersPlaced % DrawdownReductionOrders == 0)
+      {
+         CloseUnprofitableOrders(); // Close unprofitable orders
+      }
+   }
+   else
+   {
+      // Place initial order based on Trend Line PRO indicator signal
+      if (trendLine.Signal() == OP_BUY)
+      {
+         trade.Buy(LotSize); // Place buy order
+         ordersPlaced++; // Increment orders counter
+      }
+      else if (trendLine.Signal() == OP_SELL)
+      {
+         trade.Sell(LotSize); // Place sell order
+         ordersPlaced++; // Increment orders counter
+      }
+   }
+}
+
+//+------------------------------------------------------------------+
+//|                                     CloseUnprofitableOrders function |
+//|                            Closes the most unprofitable orders to minimize losses |
+//+------------------------------------------------------------------+
+void CloseUnprofitableOrders()
+{
+   // Calculate the average profit per order
+   double avgProfit = trade.Profit() / trade.PositionsTotal();
+   
+   // Loop through all the orders and close the most unprofitable ones
+   for (int i = 0; i < trade.PositionsTotal(); i++)
+   {
+      if (trade.PositionSelect(i))
+      {
+         double orderProfit = trade.Profit(); // Get order profit
+         
+         // Check if the order is unprofitable
+         if (orderProfit < avgProfit)
+         {
+            trade.Close(trade.PositionGetInteger(POSITION_TICKET)); // Close order
+            unprofitableOrders++; // Increment unprofitable orders counter
+         }
+      }
+   }
+   
+   // Reset the orders counter
+   ordersPlaced = ordersPlaced - unprofitableOrders;
+   unprofitableOrders = 0;
+}
+
+//+------------------------------------------------------------------+
+//|                                                   ManualMode function |
+//|                        Allows users to manually manage orders and override trading decisions |
+//+------------------------------------------------------------------+
+void ManualMode()
+{
+   // Implement manual trading logic here
+   // ...
+}
+
+//+------------------------------------------------------------------+
+//|                                                   OnDeinit function |
+//|                                         Executes when EA is detached from the chart |
+//+------------------------------------------------------------------+
+void OnDeinit(const int reason)
+{
+   // Perform necessary cleanup tasks here
+   // ...
+}
+
+//+------------------------------------------------------------------+
+//|                                                   LogicalConclusion function |
+//|                                   Provides a logical conclusion to the EA's trading logic |
+//+------------------------------------------------------------------+
+void LogicalConclusion()
+{
+   // Add logical conclusion to the trading logic here
+   // ...
+}
+
